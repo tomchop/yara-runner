@@ -136,9 +136,9 @@ export class YaraRunner {
 
 		return Promise.allSettled(pr).then(() => {
 			if (this.hasErrors) {
-				this.output.appendLine(`:( Errors found! Tweak your rule and try again.`);
+				this.output.appendLine(`\n:( Errors found! Tweak your rule and try again.`);
 			} else {
-				this.output.appendLine(`:) No FP or FN found, you're good to go.`);
+				this.output.appendLine(`\n:) No FP or FN found, you're good to go.`);
 			}
 		});
 	}
@@ -150,7 +150,7 @@ export class YaraRunner {
 			return;
 		}
 		await this.parseMatchRules();
-		this.output.appendLine(`Runner results ============================\n`);
+		this.output.appendLine(`Runner results ============================`);
 		await this.runAllYara();
 	}
 
