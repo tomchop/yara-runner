@@ -20,11 +20,13 @@ export class YaraRunner {
 	private output: any;
 	private document: any;
 	private matchDirectives: Map<string, YaraDirective>;
+	private hasErrors: boolean;
 
 	constructor() {
 		this.output = vscode.window.createOutputChannel("Yara runner");;
 		this.document = vscode.window.activeTextEditor?.document;
 		this.matchDirectives = new Map();
+		this.hasErrors = false;
 	}
 
 	public checkDocument() {
@@ -57,73 +59,99 @@ export class YaraRunner {
 
 	public runYara(target: string, isDirectory: boolean, matchExpected: boolean) {
 
-		let cmd = `yara ${this.document.fileName}`;
-		if (isDirectory) {
-			cmd += ` -r ${target}`;
-		} else {
-			cmd += ` ${target}`;
-		}
-		if (matchExpected) {
-			cmd += ` -n`;
-		}
+		return new Promise((resolve) => {
 
-		console.log('[yara-runner] Running Yara command:', cmd);
-		let yaraProcess = spawn(cmd, [], {
-			shell: true
-		});
-		let output = '';
-
-		yaraProcess.stdout.on("data", (data: string) => {
-			// this.output.append(data.toString());
-			output += data.toString();
-		});
-
-		// yaraProcess.stderr.on("data", (data: string) => {
-		//     this.output.append(data.toString());
-		// });
-
-		yaraProcess.on("close", (code: number) => {
-			if (code !== 0) {
-				this.output.appendLine(`Yara errored out with code ${code}\nInvoked using:\n    '${cmd}'`);
+			let cmd = `yara ${this.document.fileName}`;
+			if (isDirectory) {
+				cmd += ` -r ${target}`;
+			} else {
+				cmd += ` ${target}`;
 			}
-			if (output.length > 0 && matchExpected) {
-				this.output.append(`FN: ${output}`);
+			if (matchExpected) {
+				cmd += ` -n`;
 			}
-			if (output.length > 0 && !matchExpected) {
-				this.output.append(`FP: ${output}`);
-			}
+
+			console.log('[yara-runner] Running Yara command:', cmd);
+			let yaraProcess = spawn(cmd, [], {
+				shell: true
+			});
+			let output = '';
+
+			yaraProcess.stdout.on("data", (data: string) => {
+				// this.output.append(data.toString());
+				output += data.toString();
+			});
+
+			yaraProcess.on("close", (code: number) => {
+				if (code !== 0) {
+					this.output.appendLine(`Yara errored out with code ${code}\nInvoked using:\n    '${cmd}'`);
+					this.hasErrors = true;
+					resolve(false);
+				}
+				if (output.length > 0 && matchExpected) {
+					this.output.append(`False negative: ${output}`);
+					this.hasErrors = true;
+					resolve(false);
+				}
+				if (output.length > 0 && !matchExpected) {
+					this.output.append(`False positive: ${output}`);
+					this.hasErrors = true;
+					resolve(false);
+				}
+				resolve(true);
+			});
+
 		});
+
+
 	}
 
-	public parseMatchRules() {
+	public async parseMatchRules() {
 		let rule = this.document.getText();
 		let matches = rule.matchAll(/\/\/ runner-(dir|file)-(match|nomatch): (.*)/g);
 
 		for (let match of matches) {
-			console.log(`[yara-runner] Parsed directive: ${match[2]} ${match[1]} on ${match[3]}`);
-			vscode.workspace.fs.stat(vscode.Uri.file(match[3])).then((stat) => {
+			console.log(`[yara-runner] Parsed directive: ${match[2]} ${match[1]} at ${match[3]}`);
+			try {
+				await vscode.workspace.fs.stat(vscode.Uri.file(match[3]));
 				this.matchDirectives.set(match[3], {type: match[2], mode: match[1]});
-			}).catch((err) => {
-				console.log(`[yara-runner] Can't stat() ${match[3]}, skipping.`, err.message);
-			});
+			} catch (err) {
+				let msg = `Can't stat() ${match[3]}, skipping.`;
+				this.output.appendLine(msg);
+				console.log('[yara-runner] ', msg, err.message);
+			}
 		}
 	}
 
-	public run() {
+	public runAllYara() {
+		this.hasErrors = false;
+		let pr = [];
+
+		for ( let [target, settings] of this.matchDirectives) {
+			let isDirectory = settings.mode === 'dir';
+			let matchExpected = settings.type === 'match';
+			let process = this.runYara(target, isDirectory, matchExpected);
+			pr.push(process);
+		}
+
+		return Promise.allSettled(pr).then(() => {
+			if (this.hasErrors) {
+				this.output.appendLine(`:( Errors found! Tweak your rule and try again.`);
+			} else {
+				this.output.appendLine(`:) No FP or FN found, you're good to go.`);
+			}
+		});
+	}
+
+	public async run() {
 		this.output.clear();
 		this.output.show(true);
 		if (!(this.checkYara() && this.checkDocument())) {
 			return;
 		}
-
-		this.parseMatchRules();
+		await this.parseMatchRules();
 		this.output.appendLine(`Runner results ============================\n`);
-
-		for ( let [target, settings] of this.matchDirectives) {
-			let isDirectory = settings.mode === 'dir';
-			let matchExpected = settings.type === 'match';
-			this.runYara(target, isDirectory, matchExpected);
-		}
+		await this.runAllYara();
 	}
 
 }
