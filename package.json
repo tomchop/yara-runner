@@ -25,7 +25,19 @@
         "command": "yara-runner.runYara",
         "key": "ctrl+R"
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Yara runner configuration options.",
+      "properties": {
+        "yara-runner.yaraPath": {
+          "type": "string",
+          "default": "yara",
+          "description": "Full path to a Yara binary on the system.",
+          "scope": "resource"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

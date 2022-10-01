@@ -20,13 +20,18 @@ export class YaraRunner {
 	private output: any;
 	private document: any;
 	private matchDirectives: Map<string, YaraDirective>;
+	private yaraPath: string;
 	private hasErrors: boolean;
+	private config: any;
+
 
 	constructor() {
 		this.output = vscode.window.createOutputChannel("Yara runner");;
 		this.document = vscode.window.activeTextEditor?.document;
 		this.matchDirectives = new Map();
 		this.hasErrors = false;
+		this.config = vscode.workspace.getConfiguration("yara-runner");
+		this.yaraPath = this.config.get("yaraPath");
 	}
 
 	public checkDocument() {
@@ -61,7 +66,7 @@ export class YaraRunner {
 
 		return new Promise((resolve) => {
 
-			let cmd = `yara ${this.document.fileName}`;
+			let cmd = `${this.yaraPath} ${this.document.fileName}`;
 			if (isDirectory) {
 				cmd += ` -r ${target}`;
 			} else {
@@ -161,18 +166,16 @@ export function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log(`[yara-runner] Yara runner extension ${VERSION} is active.`);
+	let yaraRunner = new YaraRunner();
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('yara-runner.runYara', () => {
+	context.subscriptions.push(vscode.commands.registerCommand('yara-runner.runYara', () => {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
-		let yaraRunner = new YaraRunner();
 		yaraRunner.run();
-	});
-
-	context.subscriptions.push(disposable);
+	}));
 }
 
 // this method is called when your extension is deactivated
