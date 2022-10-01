@@ -101,9 +101,12 @@ export class YaraRunner {
 
 		for (let match of matches) {
 			console.log(`[yara-runner] Parsed directive: ${match[2]} ${match[1]} on ${match[3]}`);
-			this.matchDirectives.set(match[3], {type: match[2], mode: match[1]});
+			vscode.workspace.fs.stat(vscode.Uri.file(match[3])).then((stat) => {
+				this.matchDirectives.set(match[3], {type: match[2], mode: match[1]});
+			}).catch((err) => {
+				console.log(`[yara-runner] Can't stat() ${match[3]}, skipping.`, err.message);
+			});
 		}
-		this.output.appendLine(`Runner results ============================\n`);
 	}
 
 	public run() {
@@ -114,6 +117,8 @@ export class YaraRunner {
 		}
 
 		this.parseMatchRules();
+		this.output.appendLine(`Runner results ============================\n`);
+
 		for ( let [target, settings] of this.matchDirectives) {
 			let isDirectory = settings.mode === 'dir';
 			let matchExpected = settings.type === 'match';
