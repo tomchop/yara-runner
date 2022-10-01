@@ -19,6 +19,12 @@
         "command": "yara-runner.runYara",
         "title": "Run Yara rules on files."
       }
+    ],
+    "keybindings": [
+      {
+        "command": "yara-runner.runYara",
+        "key": "ctrl+R"
+      }
     ]
   },
   "scripts": {
