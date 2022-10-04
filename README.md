@@ -1,14 +1,10 @@
 # yara-runner README
 
-Run Yara rules on files right from your VSCode IDE.
+Run Yara goodware retrohunts and local files scans right from your VSCode IDE.
+
+![screenshot](images/screenshot.png)
 
 ## Features
-
-* Run your Yara rule on a set of local files straight from VSCode
-  * Write some [directives](#writing-directives) to specify which files to run Yara on.
-  * Open the command pallette and select "Run Yara rule on files."
-  * Keyboard shortcut: `Shift + Ctrl + r`
-  * Results will be reported in the `Yara runner` output pane.
 
 * Scanning the Virustotal goodware corpus (see [their blogpost](https://blog.virustotal.com/2019/10/test-your-yara-rules-against-goodware.html))
   * Open the command pallette and pick "Run a hunt on VT's goodware corpus."
@@ -16,11 +12,17 @@ Run Yara rules on files right from your VSCode IDE.
   * Only one Goodware retrohunt will be run at a time (they take 1-2 minutes to complete).
   * Results will be streamed in the `Yara runner` output pane.
 
+* Run your Yara rule on a set of local files straight from VSCode
+  * Write some [directives](#writing-directives) to specify which files to run Yara on.
+  * Open the command pallette and select "Run Yara rule on files."
+  * Keyboard shortcut: `Shift + Ctrl + r`
+  * Results will be reported in the `Yara runner` output pane.
+
 ## Requirements
 
-* **Local Yara scan**: You need to have a working Yara binary in your system for this extension to work.
-
 * **Goodware hunt**: You'll need a VirusTotal API subscription and an API key to run your rule on VT's goodware corpus.
+
+* **Local Yara scan**: You need to have a working Yara binary in your system for this extension to work.
 
 ## Writing directives
 
