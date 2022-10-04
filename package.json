@@ -10,7 +10,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:yara-runner.runYara"
+    "onCommand:yara-runner.runYara",
+    "onCommand:yara-runner.runGoodwareHunt"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -18,12 +19,20 @@
       {
         "command": "yara-runner.runYara",
         "title": "Run Yara rules on files."
+      },
+      {
+        "command": "yara-runner.runGoodwareHunt",
+        "title": "Run a hunt on VT's Goodware corpus."
       }
     ],
     "keybindings": [
       {
         "command": "yara-runner.runYara",
         "key": "ctrl+R"
+      },
+      {
+        "command": "yara-runner.runGoodwareHunt",
+        "key": "ctrl+G"
       }
     ],
     "configuration": {
@@ -34,6 +43,12 @@
           "type": "string",
           "default": "yara",
           "description": "Full path to a Yara binary on the system.",
+          "scope": "resource"
+        },
+        "yara-runner.vtApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Virustotal API key.",
           "scope": "resource"
         }
       }
