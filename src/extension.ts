@@ -15,7 +15,7 @@ const spawn = require("child_process").spawn;
 const spawnSync = require("child_process").spawnSync;
 const http = require("http");
 
-const VERSION = 0.1;
+const VERSION = "0.0.1";
 
 export class YaraRunner {
 
