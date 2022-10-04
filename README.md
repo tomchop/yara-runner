@@ -4,28 +4,30 @@ Run Yara rules on files right from your VSCode IDE.
 
 ## Features
 
-* Run your Yara rule on a set of files (defined through *directives*) straight from VSCode
-  * Open the command pallette and pick "Run Yara rule on files."
+* Run your Yara rule on a set of local files straight from VSCode
+  * Write some [directives](#writing-directives) to specify which files to run Yara on.
+  * Open the command pallette and select "Run Yara rule on files."
   * Keyboard shortcut: `Ctrl + r`
-  * Results will be reported in the Output pane.
+  * Results will be reported in the `Yara runner` output pane.
 
-* Scanning the Virustotal goodware corpus
+* Scanning the Virustotal goodware corpus (see [their blogpost](https://blog.virustotal.com/2019/10/test-your-yara-rules-against-goodware.html))
   * Open the command pallette and pick "Run a hunt on VT's goodware corpus."
   * Keyboard shortcut: `Ctrl + g`
-  * Only one Goodware retrohunt will be run at a time (they take about a minute to complete).
+  * Only one Goodware retrohunt will be run at a time (they take 1-2 minutes to complete).
+  * Results will be streamed in the `Yara runner` output pane.
 
 ## Requirements
 
-You need to have a working Yara binary in your system for this extension to work.
+* **Local Yara scan**: You need to have a working Yara binary in your system for this extension to work.
 
-If you want to use the retrohunt feature, you'll need a VirusTotal API subscription and an API key.
+* **Goodware hunt**: You'll need a VirusTotal API subscription and an API key to run your rule on VT's goodware corpus.
 
 ## Writing directives
 
 Directives are comments in your Yara rule file that describe what how yara-runner
 should behave. It can run Yara on files or directories, in `match` or `nomatch`
 modes. Think of it as just a wrapper around the binary, where `dir` will add the `-r` flag,
-and `nomatch` will add the `-n` flag
+and `nomatch` will add the `-n` flag.
 
 The directives take the form `runner-<TYPE>-<MATCH>`, where:
 
@@ -49,10 +51,6 @@ rule my_rule {
 ```
 
 ## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
 
 This extension contributes the following settings:
 
