@@ -229,7 +229,6 @@ export class YaraRunner {
 				"Content-Type": "application/json"
 			}
 		};
-		console.log(this.stripDirectivesFromRule());
 		const payload = {
 			data: {
 				type: "retrohunt_job",
