@@ -34,21 +34,21 @@
     "commands": [
       {
         "command": "yara-runner.runYara",
-        "title": "Run Yara rules on files."
+        "title": "Run Yara rules on files"
       },
       {
         "command": "yara-runner.runGoodwareHunt",
-        "title": "Run a hunt on VT's Goodware corpus."
+        "title": "Run a hunt on VT's goodware corpus"
       }
     ],
     "keybindings": [
       {
         "command": "yara-runner.runYara",
-        "key": "ctrl+R"
+        "key": "shift+ctrl+R"
       },
       {
         "command": "yara-runner.runGoodwareHunt",
-        "key": "ctrl+G"
+        "key": "shift+ctrl+G"
       }
     ],
     "configuration": {
