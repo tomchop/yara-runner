@@ -1,14 +1,30 @@
 {
   "name": "yara-runner",
-  "displayName": "yara-runner",
-  "description": "Run Yara rules as you write them.",
-  "version": "0.0.1",
+  "displayName": "Yara runner",
+  "description": "Run and check Yara rules as you write them.",
+  "version": "0.1",
   "engines": {
     "vscode": "^1.71.0"
   },
+  "publisher": "tomchop",
   "categories": [
+    "Programming Languages",
     "Other"
   ],
+  "keywords": [
+    "yara",
+    "forensics",
+    "threat intelligence"
+  ],
+  "bugs": {
+    "url": "https://github.com/tomchop/yara-runner/issues",
+    "email": "tomchop@gmail.com"
+  },
+  "homepage": "https://github.com/tomchop/yara-runner/blob/master/README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tomchop/yara-runner.git"
+  },
   "activationEvents": [
     "onCommand:yara-runner.runYara",
     "onCommand:yara-runner.runGoodwareHunt"
