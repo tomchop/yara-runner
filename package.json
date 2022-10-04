@@ -2,7 +2,7 @@
   "name": "yara-runner",
   "displayName": "Yara runner",
   "description": "Run and check Yara rules as you write them.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.71.0"
   },
