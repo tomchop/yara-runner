@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
@@ -20,7 +21,7 @@ export class YaraRunner {
 
 	private output: any;
 	private document: any;
-	private matchDirectives: Map<string, YaraDirective>;
+	private matchDirectives: Map < string, YaraDirective > ;
 	private yaraPath: string;
 	private hasErrors: boolean;
 	private config: any;
@@ -111,10 +112,7 @@ export class YaraRunner {
 				}
 				resolve(true);
 			});
-
 		});
-
-
 	}
 
 	public async parseMatchRules() {
@@ -125,8 +123,11 @@ export class YaraRunner {
 			console.log(`[yara-runner] Parsed directive: ${match[2]} ${match[1]} at ${match[3]}`);
 			try {
 				await vscode.workspace.fs.stat(vscode.Uri.file(match[3]));
-				this.matchDirectives.set(match[3], {type: match[2], mode: match[1]});
-			} catch (err) {
+				this.matchDirectives.set(match[3], {
+					type: match[2],
+					mode: match[1]
+				});
+			} catch (err: any) {
 				let msg = `Can't stat() ${match[3]}, skipping.`;
 				this.output.appendLine(msg);
 				console.log('[yara-runner] ', msg, err.message);
@@ -138,7 +139,7 @@ export class YaraRunner {
 		this.hasErrors = false;
 		let pr = [];
 
-		for ( let [target, settings] of this.matchDirectives) {
+		for (let [target, settings] of this.matchDirectives) {
 			let isDirectory = settings.mode === 'dir';
 			let matchExpected = settings.type === 'match';
 			let process = this.runYara(target, isDirectory, matchExpected);
@@ -165,34 +166,36 @@ export class YaraRunner {
 		await this.runAllYara();
 	}
 
-	private async getRetrohuntRequest(retrohuntId) {
+	private async getRetrohuntRequest(retrohuntId: string) {
 		let headers = {
 			"x-apikey": this.vtApiKey,
 			"Content-Type": "application/json"
-		}
+		};
 
-		let uri = `http://www.virustotal.com/api/v3/intelligence/retrohunt_jobs/${retrohuntId}`
+		let uri = `http://www.virustotal.com/api/v3/intelligence/retrohunt_jobs/${retrohuntId}`;
 
 		return new Promise((resolve) => {
 			let req = http.get(
-				uri, {headers: headers}, (res: any) => {
-				res.setEncoding('utf8');
-				let rawData = '';
-				res.on('data', (chunk: string) => { rawData += chunk; });
-				res.on('end', () => {
-					try {
-						const parsedData = JSON.parse(rawData);
-						let status = parsedData.data.attributes.status;
-						resolve(parsedData);
-					} catch (e) {
-						console.error(e.message);
-						console.log(rawData);
-					}
+				uri, {
+					headers: headers
+				}, (res: any) => {
+					res.setEncoding('utf8');
+					let rawData = '';
+					res.on('data', (chunk: string) => {
+						rawData += chunk;
+					});
+					res.on('end', () => {
+						try {
+							const parsedData = JSON.parse(rawData);
+							let status = parsedData.data.attributes.status;
+							resolve(parsedData);
+						} catch (err: any) {
+							console.error(err.message);
+							console.log(rawData);
+						}
+					});
 				});
-			});
 		});
-
-
 	}
 
 	public async goodwareHunt() {
@@ -203,7 +206,7 @@ export class YaraRunner {
 		}
 
 		if (!(this.checkYara() && this.checkDocument())) {
-			this.output.appendLine('Failed checks, please make sure the Yara rule is formatted correctly.')
+			this.output.appendLine('Failed checks, please make sure the Yara rule is formatted correctly.');
 			return;
 		}
 
@@ -219,37 +222,39 @@ export class YaraRunner {
 				"x-apikey": this.vtApiKey,
 				"Content-Type": "application/json"
 			}
-		}
+		};
 
 		const payload = {
 			data: {
 				type: "retrohunt_job",
 				attributes: {
-				rules: vscode.window.activeTextEditor?.document.getText(),
-				corpus: "goodware"
+					rules: vscode.window.activeTextEditor?.document.getText(),
+					corpus: "goodware"
 				}
 			}
 		};
 
 		// Connect to virustotl API and run a goodware hunt
-		let retrohuntId = await new Promise ((resolve) => {
+		let retrohuntId = await new Promise((resolve) => {
 			let req = http.request(
 				`http://www.virustotal.com/api/v3/intelligence/retrohunt_jobs`, options, (res: any) => {
-				res.setEncoding('utf8');
+					res.setEncoding('utf8');
 					let rawData = '';
-				res.on('data', (chunk: string) => { rawData += chunk; });
-				res.on('end', () => {
-					try {
-						const parsedData = JSON.parse(rawData);
-						this.retrohuntId = parsedData.data.id;
-						this.output.appendLine(`Retrohunt started, ID: ${this.retrohuntId}`);
-						resolve(this.retrohuntId);
-					} catch (e) {
-						console.log(rawData);
-						console.error(e.message);
-					}
+					res.on('data', (chunk: string) => {
+						rawData += chunk;
+					});
+					res.on('end', () => {
+						try {
+							const parsedData = JSON.parse(rawData);
+							this.retrohuntId = parsedData.data.id;
+							this.output.appendLine(`Retrohunt started, ID: ${this.retrohuntId}`);
+							resolve(this.retrohuntId);
+						} catch (err: any) {
+							console.log(rawData);
+							console.error(err.message);
+						}
+					});
 				});
-			});
 			req.write(JSON.stringify(payload));
 			req.end();
 		});
@@ -266,16 +271,11 @@ export class YaraRunner {
 		} while (result.data.attributes.status !== 'finished');
 
 		this.output.appendLine(`Goodware retrohunt finished: ${result.data.attributes.num_matches} matches.`);
-		let deltaSec = result.data.attributes.finish_date - result.data.attributes.start_date
-		let gbScanned = result.data.attributes.scanned_bytes/(1024**3);
+		let deltaSec = result.data.attributes.finish_date - result.data.attributes.start_date;
+		let gbScanned = result.data.attributes.scanned_bytes / (1024 ** 3);
 		this.output.appendLine(`Stats: Scanned ${gbScanned.toFixed(2)} GB in ${deltaSec}s.`);
 		this.retrohuntId = null;
-
 	}
-
-
-
-
 }
 
 export function activate(context: vscode.ExtensionContext) {
