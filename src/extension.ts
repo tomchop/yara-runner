@@ -197,80 +197,81 @@ export class YaraRunner {
 
 	public async goodwareHunt() {
 
-		this.output.clear();
-		this.output.show(true);
-		if (!(this.checkYara() && this.checkDocument())) {
-			console.log('fail')
+		if (this.retrohuntId !== null) {
+			this.output.appendLine(`Retrohunt ${this.retrohuntId} already running, please wait for it to finish.`);
 			return;
 		}
 
-		if (this.retrohuntId !== null) {
-			console.log('[yara-runner] Checking retrohunt', this.retrohuntId);
-			this.output.appendLine(`Already running a retrohunt, please wait...`);
-
-			let result: any = {};
-			let progress: number = 0;
-			do {
-				result = await this.getRetrohuntRequest(this.retrohuntId);
-				if (result.data.attributes.progress !== progress) {
-					progress = result.data.attributes.progress;
-					this.output.appendLine(`Progress: ~${Math.round(progress)}% (${result.data.attributes.num_matches} matches)`);
-				}
-				await new Promise(r => setTimeout(r, 3000));
-			} while (result.data.attributes.status !== 'finished');
-			this.output.appendLine(`Goodware retrohunt finished: ${result.data.attributes.num_matches} matches.`);
-			let deltaSec = result.data.attributes.finish_date - result.data.attributes.start_date
-			let gbScanned = result.data.attributes.scanned_bytes/(1024**3);
-			this.output.appendLine(`Stats: Scanned ${gbScanned.toFixed(2)} GB in ${deltaSec}s.`);
-			this.retrohuntId = null;
-			return
+		if (!(this.checkYara() && this.checkDocument())) {
+			this.output.appendLine('Failed checks, please make sure the Yara rule is formatted correctly.')
+			return;
 		}
-		else {
-			console.log('[yara-runner] New retrohunt requested');
-			this.output.appendLine(`Running new retrohunt on VT's goodware corpus...`);
 
-			let options = {
-				method: "POST",
-				headers: {
-					"x-apikey": this.vtApiKey,
-					"Content-Type": "application/json"
+		this.output.clear();
+		this.output.show(true);
+
+		console.log('[yara-runner] New goodware retrohunt requested');
+		this.output.appendLine(`Running new retrohunt on VT's goodware corpus...`);
+
+		let options = {
+			method: "POST",
+			headers: {
+				"x-apikey": this.vtApiKey,
+				"Content-Type": "application/json"
+			}
+		}
+
+		const payload = {
+			data: {
+				type: "retrohunt_job",
+				attributes: {
+				rules: vscode.window.activeTextEditor?.document.getText(),
+				corpus: "goodware"
 				}
 			}
+		};
 
-			const payload = {
-				data: {
-				  type: "retrohunt_job",
-				  attributes: {
-					rules: vscode.window.activeTextEditor?.document.getText(),
-					corpus: "goodware"
-				  }
-				}
-			  };
-
-			// Connect to virustotl API and run a goodware hunt
+		// Connect to virustotl API and run a goodware hunt
+		let retrohuntId = await new Promise ((resolve) => {
 			let req = http.request(
 				`http://www.virustotal.com/api/v3/intelligence/retrohunt_jobs`, options, (res: any) => {
 				res.setEncoding('utf8');
-				  let rawData = '';
+					let rawData = '';
 				res.on('data', (chunk: string) => { rawData += chunk; });
 				res.on('end', () => {
 					try {
 						const parsedData = JSON.parse(rawData);
 						this.retrohuntId = parsedData.data.id;
 						this.output.appendLine(`Retrohunt started, ID: ${this.retrohuntId}`);
+						resolve(this.retrohuntId);
 					} catch (e) {
 						console.log(rawData);
 						console.error(e.message);
 					}
 				});
 			});
-
 			req.write(JSON.stringify(payload));
 			req.end();
-		}
+		});
 
-		}
-		// let apiKey = "blah";
+		let result: any = {};
+		let progress: number = 0;
+		do {
+			result = await this.getRetrohuntRequest(this.retrohuntId);
+			if (result.data.attributes.progress !== progress) {
+				progress = result.data.attributes.progress;
+				this.output.appendLine(`Progress: ~${Math.round(progress)}% (${result.data.attributes.num_matches} matches)`);
+			}
+			await new Promise(r => setTimeout(r, 3000));
+		} while (result.data.attributes.status !== 'finished');
+
+		this.output.appendLine(`Goodware retrohunt finished: ${result.data.attributes.num_matches} matches.`);
+		let deltaSec = result.data.attributes.finish_date - result.data.attributes.start_date
+		let gbScanned = result.data.attributes.scanned_bytes/(1024**3);
+		this.output.appendLine(`Stats: Scanned ${gbScanned.toFixed(2)} GB in ${deltaSec}s.`);
+		this.retrohuntId = null;
+
+	}
 
 
 
