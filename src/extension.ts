@@ -42,6 +42,7 @@ export class YaraRunner {
 	}
 
 	public checkDocument() {
+		this.document = vscode.window.activeTextEditor?.document;
 		if (!this.document) {
 			return false;
 		}
@@ -198,6 +199,11 @@ export class YaraRunner {
 		});
 	}
 
+	private stripDirectivesFromRule() {
+		let text = this.document.getText();
+		return text.replace(/\/\/ runner.*$/gm, '');
+	}
+
 	public async goodwareHunt() {
 
 		if (this.retrohuntId !== null) {
@@ -223,12 +229,12 @@ export class YaraRunner {
 				"Content-Type": "application/json"
 			}
 		};
-
+		console.log(this.stripDirectivesFromRule());
 		const payload = {
 			data: {
 				type: "retrohunt_job",
 				attributes: {
-					rules: vscode.window.activeTextEditor?.document.getText(),
+					rules: this.stripDirectivesFromRule(),
 					corpus: "goodware"
 				}
 			}
@@ -261,6 +267,8 @@ export class YaraRunner {
 
 		let result: any = {};
 		let progress: number = 0;
+		this.output.appendLine(`Progress: 0%`);
+
 		do {
 			result = await this.getRetrohuntRequest(this.retrohuntId);
 			if (result.data.attributes.progress !== progress) {
