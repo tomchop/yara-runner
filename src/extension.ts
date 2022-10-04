@@ -12,6 +12,7 @@ type YaraDirective = {
 
 const spawn = require("child_process").spawn;
 const spawnSync = require("child_process").spawnSync;
+const http = require("http");
 
 const VERSION = 0.1;
 
@@ -24,14 +25,19 @@ export class YaraRunner {
 	private hasErrors: boolean;
 	private config: any;
 
+	private vtApiKey: string;
+	private retrohuntId: any;
+
 
 	constructor() {
 		this.output = vscode.window.createOutputChannel("Yara runner");;
 		this.document = vscode.window.activeTextEditor?.document;
 		this.matchDirectives = new Map();
 		this.hasErrors = false;
+		this.retrohuntId = null;
 		this.config = vscode.workspace.getConfiguration("yara-runner");
 		this.yaraPath = this.config.get("yaraPath");
+		this.vtApiKey = this.config.get("vtApiKey");
 	}
 
 	public checkDocument() {
@@ -159,6 +165,116 @@ export class YaraRunner {
 		await this.runAllYara();
 	}
 
+	private async getRetrohuntRequest(retrohuntId) {
+		let headers = {
+			"x-apikey": this.vtApiKey,
+			"Content-Type": "application/json"
+		}
+
+		let uri = `http://www.virustotal.com/api/v3/intelligence/retrohunt_jobs/${retrohuntId}`
+
+		return new Promise((resolve) => {
+			let req = http.get(
+				uri, {headers: headers}, (res: any) => {
+				res.setEncoding('utf8');
+				let rawData = '';
+				res.on('data', (chunk: string) => { rawData += chunk; });
+				res.on('end', () => {
+					try {
+						const parsedData = JSON.parse(rawData);
+						let status = parsedData.data.attributes.status;
+						resolve(parsedData);
+					} catch (e) {
+						console.error(e.message);
+						console.log(rawData);
+					}
+				});
+			});
+		});
+
+
+	}
+
+	public async goodwareHunt() {
+
+		this.output.clear();
+		this.output.show(true);
+		if (!(this.checkYara() && this.checkDocument())) {
+			console.log('fail')
+			return;
+		}
+
+		if (this.retrohuntId !== null) {
+			console.log('[yara-runner] Checking retrohunt', this.retrohuntId);
+			this.output.appendLine(`Already running a retrohunt, please wait...`);
+
+			let result: any = {};
+			let progress: number = 0;
+			do {
+				result = await this.getRetrohuntRequest(this.retrohuntId);
+				if (result.data.attributes.progress !== progress) {
+					progress = result.data.attributes.progress;
+					this.output.appendLine(`Progress: ~${Math.round(progress)}% (${result.data.attributes.num_matches} matches)`);
+				}
+				await new Promise(r => setTimeout(r, 3000));
+			} while (result.data.attributes.status !== 'finished');
+			this.output.appendLine(`Goodware retrohunt finished: ${result.data.attributes.num_matches} matches.`);
+			let deltaSec = result.data.attributes.finish_date - result.data.attributes.start_date
+			let gbScanned = result.data.attributes.scanned_bytes/(1024**3);
+			this.output.appendLine(`Stats: Scanned ${gbScanned.toFixed(2)} GB in ${deltaSec}s.`);
+			this.retrohuntId = null;
+			return
+		}
+		else {
+			console.log('[yara-runner] New retrohunt requested');
+			this.output.appendLine(`Running new retrohunt on VT's goodware corpus...`);
+
+			let options = {
+				method: "POST",
+				headers: {
+					"x-apikey": this.vtApiKey,
+					"Content-Type": "application/json"
+				}
+			}
+
+			const payload = {
+				data: {
+				  type: "retrohunt_job",
+				  attributes: {
+					rules: vscode.window.activeTextEditor?.document.getText(),
+					corpus: "goodware"
+				  }
+				}
+			  };
+
+			// Connect to virustotl API and run a goodware hunt
+			let req = http.request(
+				`http://www.virustotal.com/api/v3/intelligence/retrohunt_jobs`, options, (res: any) => {
+				res.setEncoding('utf8');
+				  let rawData = '';
+				res.on('data', (chunk: string) => { rawData += chunk; });
+				res.on('end', () => {
+					try {
+						const parsedData = JSON.parse(rawData);
+						this.retrohuntId = parsedData.data.id;
+						this.output.appendLine(`Retrohunt started, ID: ${this.retrohuntId}`);
+					} catch (e) {
+						console.log(rawData);
+						console.error(e.message);
+					}
+				});
+			});
+
+			req.write(JSON.stringify(payload));
+			req.end();
+		}
+
+		}
+		// let apiKey = "blah";
+
+
+
+
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -175,6 +291,12 @@ export function activate(context: vscode.ExtensionContext) {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
 		yaraRunner.run();
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('yara-runner.runGoodwareHunt', () => {
+		// The code you place here will be executed every time your command is executed
+		// Display a message box to the user
+		yaraRunner.goodwareHunt();
 	}));
 }
 
